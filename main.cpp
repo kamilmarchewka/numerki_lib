@@ -11,22 +11,39 @@
 #include "MetodaPktSr.hpp"
 #include "MetodaRK4.hpp"
 #include "MetodaSiecznych.hpp"
+#include "PrintMatrix.hpp"
+#include "PrintVector.hpp"
+#include "ReadFileToMatrix.hpp"
 #include "RegulaFalsi.hpp"
+#include "SolveLU.hpp"
 #include "SrBladKwadrat.hpp"
 
 using namespace std;
 
-double f1(double x) { return log10(x + 1) - pow(x, 3); }
-
-double f2(double x) { return cosh(x) - sqrt(x * x) - 0.55; }
-
-double f3(double x) { return cos(3 * M_PI * x) / (x + 1); }
-
 int main() {
 
-  find_zeros(f1, -0.99, 3, 0.1, "f1.csv");
-  find_zeros(f2, -3, 3, 0.1, "f2.csv");
-  find_zeros(f3, -3, 3, 0.1, "f3.csv");
+  vector<vector<double>> A;
+  vector<double> b;
+  int N;
+
+  // Wczytanie danych z pliku
+  if (!readFileToMatrix("data.txt", A, b, N)) {
+    return 1;
+  }
+
+  vector<double> x(N, 0);
+  vector<double> z(N, 0);
+
+  cout << "Wczytane dane:" << endl;
+  cout << "N = " << N << endl;
+  cout << "A = " << endl;
+  printMatrix(A, b);
+  printVector("b", b);
+  printVector("x", x);
+  printVector("z", z);
+
+  x = solveLU(A, b, N);
+  printVector("Rozwiazanie", x);
 
   return 0;
 }

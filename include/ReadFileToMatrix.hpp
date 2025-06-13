@@ -5,49 +5,49 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <vector>
 
 /**
- * @brief Odczytuje dwie linie z pliku i zapisuje wartości do dwóch wektorów.
+ * @brief Wczytuje macierz i wektor z pliku.
  *
- * @param filePath Ścieżka do pliku, który ma zostać odczytany.
- * @param vec1 Pierwszy wektor, do którego zostaną zapisane wartości z pierwszej
- * linii.
- * @param vec2 Drugi wektor, do którego zostaną zapisane wartości z drugiej
- * linii.
- * @return true jeśli plik został pomyślnie odczytany, false w przeciwnym razie.
+ * Funkcja wczytuje kwadratową macierz A oraz wektor b z pliku.
+ * Pierwsza linia pliku zawiera rozmiar macierzy N.
+ * Kolejne N linii zawierają elementy wektora b, a następne N linii
+ * zawierają elementy macierzy A.
+ *
+ * @param filename Nazwa pliku do wczytania.
+ * @param A Macierz, która zostanie wypełniona wczytanymi wartościami.
+ * @param b Wektor, który zostanie wypełniony wczytanymi wartościami.
+ * @param N Rozmiar macierzy i wektora.
+ * @return true jeśli plik został poprawnie wczytany, false w przeciwnym razie.
  */
-bool readFileToMatrix(const std::string &filePath, std::vector<double> &vec1,
-                      std::vector<double> &vec2) {
 
-  std::ifstream file(filePath);
-
-  // Check if file was opened successfully
-  if (!file) {
-    std::cerr << "Nie można otworzyć pliku!" << std::endl;
+bool readFileToMatrix(const std::string &filename,
+                      std::vector<std::vector<double>> &A,
+                      std::vector<double> &b, int &N) {
+  std::ifstream inputFile(filename);
+  if (!inputFile) {
+    std::cerr << "Error opening file!" << std::endl;
     return false;
   }
 
-  std::string line;
-  double value;
+  inputFile >> N;
+  A.assign(N, std::vector<double>(N));
+  b.assign(N, 0);
 
-  // Read the first line
-  if (std::getline(file, line)) {
-    std::istringstream iss(line);
-    while (iss >> value) {
-      vec1.push_back(value);
+  for (int i = 0; i < N; i++) {
+
+    inputFile >> b[i];
+  }
+
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      inputFile >> A[i][j];
     }
   }
 
-  // Read the second line
-  if (std::getline(file, line)) {
-    std::istringstream iss(line);
-    while (iss >> value) {
-      vec2.push_back(value);
-    }
-  }
-
-  file.close();
-
+  inputFile.close();
   return true;
 }
 
