@@ -1,45 +1,99 @@
-
 #include <cmath>
 #include <functional>
 #include <iomanip>
 #include <iostream>
 #include <vector>
 
-#include "GaussLegendre.hpp"
+const double A = -1.0;
+const double B = 2.0;
+const int N = 1000;
 
-// Funkcje podcałkowe
-double integrand1(double x) { return x * x * pow(sin(x), 3); }
+using Func = std::function<double(double)>;
 
-double integrand2(double x) { return exp(x * x) * (1 - x); }
+double horner(const std::vector<double> &coeffs, double x) {
+  double result = 0.0;
+  for (int i = coeffs.size() - 1; i >= 0; --i) {
+    result = result * x + coeffs[i];
+  }
+  return result;
+}
 
-double integrand3(double x) { return (x * pow(cos(x), 3)); }
+double simpson_f(const Func &f, double a, double b, int n) {
+  if (n % 2 != 0)
+    ++n;
+  double dx = (b - a) / n;
+  double sum = f(a) + f(b);
+  for (int i = 1; i < n; ++i)
+    sum += f(a + i * dx) * (i % 2 == 0 ? 2 : 4);
+  return sum * dx / 3.0;
+}
 
-void evaluate_integral(std::function<double(double)> f, double a, double b,
-                       double exact, int subdivs) {
-  std::cout << "Przedziały: " << subdivs << std::endl;
-  std::cout << "Dokładna wartość: " << exact << std::endl;
+void leastSquares(const Func &f, int degree, std::vector<double> &coeffs) {
+  coeffs.resize(degree + 1);
+  std::vector<std::vector<double>> G(degree + 1,
+                                     std::vector<double>(degree + 1));
+  std::vector<double> b(degree + 1);
 
-  for (int n : {2, 3, 4}) {
-    double approx = gauss_legendre_subdivided(f, a, b, n, subdivs);
-    double abs_err = std::abs(approx - exact);
-    std::cout << n << "-węzłowa: " << std::setprecision(15) << approx
-              << "    Błąd bezwzględny: " << std::scientific << abs_err << "\n";
+  for (int i = 0; i <= degree; ++i) {
+    for (int j = 0; j <= degree; ++j) {
+      G[i][j] =
+          simpson_f([=](double x) { return std::pow(x, i + j); }, A, B, N);
+    }
   }
 
-  std::cout << "-----------------------------\n";
+  for (int i = 0; i <= degree; ++i) {
+    b[i] =
+        simpson_f([=, &f](double x) { return f(x) * std::pow(x, i); }, A, B, N);
+  }
+
+  for (int i = 0; i <= degree; ++i) {
+    for (int j = i + 1; j <= degree; ++j) {
+      double factor = G[j][i] / G[i][i];
+      for (int k = i; k <= degree; ++k) {
+        G[j][k] -= factor * G[i][k];
+      }
+      b[j] -= factor * b[i];
+    }
+  }
+
+  for (int i = degree; i >= 0; --i) {
+    coeffs[i] = b[i];
+    for (int j = i + 1; j <= degree; ++j) {
+      coeffs[i] -= G[i][j] * coeffs[j];
+    }
+    coeffs[i] /= G[i][i];
+  }
 }
+
+double computeError(const Func &f, const std::vector<double> &coeffs) {
+  return simpson_f(
+      [&](double x) {
+        double err = f(x) - horner(coeffs, x);
+        return err * err;
+      },
+      A, B, N);
+}
+
 int main() {
-  int subdivs = 1000;
+  Func f = [](double x) {
+    return std::exp(x) * std::cos(5 * x) - std::pow(x, 3);
+  };
 
-  std::cout << std::fixed << std::setprecision(10);
+  std::vector<double> coeffs;
 
-  double exact1 = -10.1010101105917;
-  double exact2 = -9876.54321007546;
-  double exact3 = 4.202504090000006;
+  for (int deg = 0; deg <= 10; deg += 1) {
+    leastSquares(f, deg, coeffs);
 
-  evaluate_integral(integrand1, 1.0, 4.764798248, exact1, subdivs);
-  evaluate_integral(integrand2, -2.0, 3.20870913294, exact2, subdivs);
-  evaluate_integral(integrand3, -3.5, 6.52968912439344, exact3, subdivs);
+    std::cout << std::fixed << std::setprecision(6);
+    std::cout << "Współczynniki aproksymującego wielomianu stopnia " << deg
+              << ":\n";
+    for (int i = 0; i < coeffs.size(); ++i) {
+      std::cout << "c[" << i << "] = " << coeffs[i] << "\n";
+    }
+
+    double error = computeError(f, coeffs);
+    std::cout << "\nBłąd średniokwadratowy (L²): " << error << "\n";
+  }
 
   return 0;
 }

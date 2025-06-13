@@ -1,2 +1,1 @@
-build/main.o: main.cpp include/GaussLegendre.hpp
-include/GaussLegendre.hpp:
+build/main.o: main.cpp
